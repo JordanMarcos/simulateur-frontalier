@@ -17,6 +17,7 @@
       --green-bright: #39a77c;
       --mint: #d7eee3;
       --orange: #e8a65a;
+      --chart-health: #6685c4;
       --shadow: 0 24px 70px rgb(26 48 39 / 8%);
       --tag-surface: rgb(255 255 255 / 72%);
       --tag-ink: #47564f;
@@ -50,6 +51,7 @@
       --line: #34443a;
       --green-bright: #57b88a;
       --orange: #edb063;
+      --chart-health: #8aa8e8;
       --shadow: 0 24px 70px rgb(0 0 0 / 24%);
       --tag-surface: #1c2922;
       --tag-ink: #d1ddd5;
@@ -284,6 +286,28 @@
     .salary-input-wrap input::-webkit-inner-spin-button,
     .salary-input-wrap input::-webkit-outer-spin-button { margin: 0; }
     .salary-input-wrap input { appearance: textfield; }
+
+    .health-select,
+    .health-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border: 1px solid var(--input-border);
+      border-radius: 11px;
+      background: var(--input-surface);
+      color: var(--ink);
+    }
+
+    .health-select:focus-visible,
+    .health-input:focus-visible {
+      outline: 3px solid rgb(57 167 124 / 28%);
+      outline-offset: 2px;
+    }
+
+    .health-input-box { margin-top: 16px; }
+    .health-input-box .field-label { margin: 0 0 8px; }
+    .health-help { margin: 8px 0 0; color: var(--helper-ink); font-size: 11px; line-height: 1.5; }
+    .health-input-box[hidden] { display: none; }
 
     .salary-range-control {
       position: relative;
@@ -545,10 +569,11 @@
     .chart-net { background: var(--green); }
     .chart-charges { background: var(--green-bright); }
     .chart-tax { background: var(--orange); }
+    .chart-health { background: var(--chart-health); }
 
     .legend {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
       margin-top: 17px;
     }
@@ -737,21 +762,37 @@
         <h2>Votre salaire brut</h2>
         <label class="field-label" id="gross-salary-label" for="gross-salary">Salaire annuel brut</label>
         <div class="salary-input-wrap">
-          <input id="gross-salary" name="gross-salary" type="number" min="40000" max="250000" step="1" value="95000" inputmode="numeric" aria-describedby="salary-help salary-error">
+          <input id="gross-salary" name="gross-salary" type="number" min="40000" max="250000" step="1" value="95000" inputmode="decimal" aria-describedby="salary-help salary-error">
           <span class="currency" aria-hidden="true">CHF</span>
         </div>
         <div class="salary-range-control">
           <div class="salary-range-track" aria-hidden="true">
             <span class="salary-range-progress" id="salary-range-progress"></span>
           </div>
-          <input class="salary-range" id="salary-range" type="range" min="40000" max="250000" step="1" value="95000" aria-labelledby="gross-salary-label" aria-describedby="salary-help salary-error">
+          <input class="salary-range" id="salary-range" type="range" min="40000" max="250000" step="0.01" value="95000" aria-labelledby="gross-salary-label" aria-describedby="salary-help salary-error">
         </div>
         <div class="salary-range-labels" aria-hidden="true">
-          <span>40 000 CHF</span>
-          <span>250 000 CHF</span>
+          <span id="salary-range-min-label">40 000 CHF</span>
+          <span id="salary-range-max-label">250 000 CHF</span>
         </div>
         <p class="helper" id="salary-help">Montant annuel avant cotisations et impôts</p>
         <p class="input-error" id="salary-error" aria-live="polite"></p>
+
+        <label class="field-label" for="health-system">Assurance maladie</label>
+        <select class="health-select" id="health-system" name="health-system" aria-describedby="health-info health-error">
+          <option value="cmu">CMU — assurance maladie française</option>
+          <option value="lamal">LAMal — assurance maladie suisse</option>
+        </select>
+        <div class="health-input-box" id="cmu-input-box">
+          <label class="field-label" for="rfr-income">Revenu fiscal de référence annuel</label>
+          <input class="health-input" id="rfr-income" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Montant en EUR" aria-describedby="health-info health-error">
+        </div>
+        <div class="health-input-box" id="lamal-input-box" hidden>
+          <label class="field-label" for="lamal-premium">Prime LAMal mensuelle</label>
+          <input class="health-input" id="lamal-premium" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Montant en CHF" aria-describedby="health-info health-error">
+        </div>
+        <p class="health-help" id="health-info">La CMU est calculée à partir du RFR annuel indiqué, selon la formule de cotisation applicable. Utilisez le RFR retenu par l’Urssaf.</p>
+        <p class="input-error" id="health-error" aria-live="polite"></p>
 
         <div class="assumption-box">
           <p class="assumption-title">
@@ -759,10 +800,11 @@
             Hypothèses utilisées
           </p>
           <ul class="assumption-list">
-            <li><span>Cotisations sociales</span><strong>15 %</strong></li>
-            <li><span>Impôt estimé</span><strong>10 %</strong></li>
+            <li><span>Cotisations sociales (hors santé)</span><strong>15 %*</strong></li>
+            <li><span>Impôt estimé*</span><strong>10 %</strong></li>
             <li><span>Taux de conversion</span><strong>1 CHF = 1,05 EUR</strong></li>
           </ul>
+          <p class="health-help">* Hypothèses simplifiées déjà présentes dans le simulateur, pas des taux officiels.</p>
         </div>
       </div>
 
@@ -781,7 +823,7 @@
           <p class="net-secondary" id="net-chf">— CHF</p>
         </div>
 
-        <div class="period-toggle" role="group" aria-label="Période d’affichage">
+        <div class="period-toggle" role="group" aria-label="Période de saisie et d’affichage">
           <button class="period-option" type="button" data-period="monthly" aria-pressed="true">Mensuel</button>
           <button class="period-option" type="button" data-period="annual" aria-pressed="false">Annuel</button>
         </div>
@@ -794,6 +836,7 @@
           <span class="chart-segment chart-net" id="chart-net"></span>
           <span class="chart-segment chart-charges" id="chart-charges"></span>
           <span class="chart-segment chart-tax" id="chart-tax"></span>
+          <span class="chart-segment chart-health" id="chart-health"></span>
         </div>
         <div class="legend">
           <div class="legend-item">
@@ -807,6 +850,10 @@
           <div class="legend-item">
             <div class="legend-label"><span class="legend-dot chart-tax"></span>Impôts</div>
             <div class="legend-value" id="breakdown-tax">—</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-label"><span class="legend-dot chart-health"></span>Santé</div>
+            <div class="legend-value" id="breakdown-health">—</div>
           </div>
         </div>
 
@@ -832,7 +879,7 @@
 
     <aside class="disclaimer">
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.2 2.8 15a1.2 1.2 0 0 0 1 1.8h12.4a1.2 1.2 0 0 0 1-1.8L10 2.2Z" stroke="currentColor" stroke-width="1.5"/><path d="M10 7v4m0 2.3v.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      <p><strong>Estimation indicative uniquement.</strong> Le résultat applique des taux fixes simplifiés et un taux de change indicatif. Les cotisations et l’imposition réelles dépendent notamment de votre situation personnelle et des règles en vigueur. Ce simulateur ne remplace pas un calcul officiel ni un conseil fiscal.</p>
+      <p><strong>Estimation indicative uniquement.</strong> La CMU est estimée à 8 % du RFR après déduction de 25 % du PASS 2026 (4 005 EUR par mois, soit 48 060 EUR par an). La prime LAMal varie notamment selon le pays de domicile et l’assureur; saisissez le montant de votre offre ou facture. Les cotisations sociales (15 %), l’impôt (10 %) et le taux de change restent des hypothèses simplifiées : ce n’est pas un calcul officiel. Sources : <a href="https://www.urssaf.fr/accueil/independant/beneficier-aide/cotisation-maladie-frontalier.html" target="_blank" rel="noreferrer">Urssaf — cotisation maladie des frontaliers</a>, <a href="https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053143451" target="_blank" rel="noreferrer">arrêté fixant le PASS 2026</a>, <a href="https://www.bag.admin.ch/fr/assurance-maladie-primes-et-reduction-des-primes-ueaeleuk" target="_blank" rel="noreferrer">OFSP/BAG — primes UE/AELE/UK</a>. Ce simulateur ne remplace pas un calcul officiel ni un conseil fiscal.</p>
     </aside>
   </main>
 
@@ -841,21 +888,73 @@
       const CHARGES_RATE = 0.15;
       const TAX_RATE = 0.10;
       const CHF_TO_EUR = 1.05;
+      const CMU_RATE = 0.08;
+      const PASS_2026 = 48060;
       const MIN_SALARY = 40000;
       const MAX_SALARY = 250000;
       const grossInput = document.querySelector("#gross-salary");
       const salaryRange = document.querySelector("#salary-range");
       const salaryRangeProgress = document.querySelector("#salary-range-progress");
+      const salaryRangeMinLabel = document.querySelector("#salary-range-min-label");
+      const salaryRangeMaxLabel = document.querySelector("#salary-range-max-label");
       const errorMessage = document.querySelector("#salary-error");
+      const healthSystem = document.querySelector("#health-system");
+      const rfrInput = document.querySelector("#rfr-income");
+      const lamalPremiumInput = document.querySelector("#lamal-premium");
+      const healthError = document.querySelector("#health-error");
+      const healthInfo = document.querySelector("#health-info");
       const periodButtons = document.querySelectorAll(".period-option");
       const themeToggle = document.querySelector("#theme-toggle");
       const copyButton = document.querySelector("#copy-result");
       const copyStatus = document.querySelector("#copy-status");
       const numberFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
       let period = "monthly";
+      let grossAnnual = Number(grossInput.value);
+      let currentCalculation = null;
 
       const formatMoney = (amount, currency) =>
         `${numberFormat.format(Math.round(amount))} ${currency}`;
+
+      function currentSalaryFactor() {
+        return period === "monthly" ? 12 : 1;
+      }
+
+      function updateSalaryControls() {
+        const factor = currentSalaryFactor();
+        const min = MIN_SALARY / factor;
+        const max = MAX_SALARY / factor;
+        const amount = grossAnnual / factor;
+        const isMonthly = period === "monthly";
+        const label = `Salaire ${isMonthly ? "mensuel" : "annuel"} brut`;
+
+        document.querySelector("#gross-salary-label").textContent = label;
+        document.querySelector("#salary-help").textContent =
+          `Montant ${isMonthly ? "mensuel" : "annuel"} avant cotisations et impôts`;
+        grossInput.min = String(min);
+        grossInput.max = String(max);
+        grossInput.step = isMonthly ? "0.01" : "1";
+        grossInput.value = Number.isFinite(amount) ? String(Number(amount.toFixed(2))) : "";
+        salaryRange.min = String(min);
+        salaryRange.max = String(max);
+        salaryRange.value = Number.isFinite(amount) ? String(amount) : String(min);
+        salaryRangeMinLabel.textContent = formatMoney(min, "CHF");
+        salaryRangeMaxLabel.textContent = formatMoney(max, "CHF");
+        salaryRangeProgress.style.width = Number.isFinite(amount)
+          ? `${Math.max(0, Math.min(100, (amount - min) / (max - min) * 100))}%`
+          : "0";
+      }
+
+      function updateHealthInputs() {
+        const isCmu = healthSystem.value === "cmu";
+        document.querySelector("#cmu-input-box").hidden = !isCmu;
+        document.querySelector("#lamal-input-box").hidden = isCmu;
+        rfrInput.removeAttribute("aria-invalid");
+        lamalPremiumInput.removeAttribute("aria-invalid");
+        healthInfo.textContent = isCmu
+          ? "Saisissez le RFR annuel retenu par l’Urssaf. Estimation : 8 % du RFR après abattement de 25 % du PASS 2026."
+          : "Saisissez la prime mensuelle effective de votre contrat en CHF. La prime LAMal dépend du contrat et du profil, pas du salaire.";
+        updateResults();
+      }
 
       themeToggle.addEventListener("click", () => {
         const isDark = document.body.dataset.theme !== "dark";
@@ -875,51 +974,102 @@
         for (const id of [
           "net-chf", "net-eur", "gross-label", "breakdown-net",
           "breakdown-charges", "breakdown-tax", "alternate-chf",
-          "alternate-eur"
+          "alternate-eur", "breakdown-health"
         ]) {
           document.getElementById(id).textContent = "—";
         }
-        for (const id of ["chart-net", "chart-charges", "chart-tax"]) {
+        for (const id of ["chart-net", "chart-charges", "chart-tax", "chart-health"]) {
           document.getElementById(id).style.width = "0";
         }
+        currentCalculation = null;
         document.querySelector("#salary-chart").setAttribute(
           "aria-label",
-          "Répartition indisponible : saisissez un salaire annuel valide."
+          "Répartition indisponible : vérifiez le salaire et les informations d’assurance maladie."
         );
       }
 
       function updateResults() {
         const rawValue = grossInput.value.trim();
-        const gross = Number(rawValue);
-        const isValid = rawValue !== "" && Number.isInteger(gross)
-          && gross >= MIN_SALARY && gross <= MAX_SALARY;
+        const enteredSalary = Number(rawValue);
+        const isValidSalary = rawValue !== "" && Number.isFinite(enteredSalary)
+          && Number.isFinite(grossAnnual)
+          && grossAnnual >= MIN_SALARY && grossAnnual <= MAX_SALARY;
 
-        if (!isValid) {
+        if (!isValidSalary) {
           errorMessage.textContent = rawValue === ""
             ? "Saisissez un montant pour afficher l’estimation."
-            : "Saisissez un montant entier entre 40 000 et 250 000 CHF.";
+            : `Saisissez un salaire ${period === "monthly" ? "mensuel" : "annuel"} équivalent à un montant annuel entre 40 000 et 250 000 CHF.`;
           grossInput.setAttribute("aria-invalid", "true");
           copyButton.disabled = true;
           clearResults();
           return;
         }
 
+        let healthCostAnnual;
+        if (healthSystem.value === "cmu") {
+          const rawRfr = rfrInput.value.trim();
+          const rfr = Number(rawRfr);
+          if (rawRfr === "" || !Number.isFinite(rfr) || rfr < 0) {
+            healthError.textContent = rawRfr === ""
+              ? "Saisissez le RFR annuel pour calculer la cotisation CMU."
+              : "Saisissez un RFR annuel positif ou nul.";
+            rfrInput.setAttribute("aria-invalid", "true");
+            copyButton.disabled = true;
+            clearResults();
+            return;
+          }
+          rfrInput.removeAttribute("aria-invalid");
+          healthCostAnnual = Math.max(0, rfr - PASS_2026 * 0.25) * CMU_RATE / CHF_TO_EUR;
+        } else {
+          const rawPremium = lamalPremiumInput.value.trim();
+          const premium = Number(rawPremium);
+          if (rawPremium === "" || !Number.isFinite(premium) || premium < 0) {
+            healthError.textContent = rawPremium === ""
+              ? "Saisissez la prime LAMal mensuelle de votre contrat."
+              : "Saisissez une prime LAMal positive ou nulle.";
+            lamalPremiumInput.setAttribute("aria-invalid", "true");
+            copyButton.disabled = true;
+            clearResults();
+            return;
+          }
+          lamalPremiumInput.removeAttribute("aria-invalid");
+          healthCostAnnual = premium * 12;
+        }
+
         errorMessage.textContent = "";
+        healthError.textContent = "";
         grossInput.removeAttribute("aria-invalid");
         copyButton.disabled = false;
-        salaryRange.value = String(gross);
-        salaryRangeProgress.style.width = `${(gross - MIN_SALARY) / (MAX_SALARY - MIN_SALARY) * 100}%`;
+        const factor = currentSalaryFactor();
+        const min = MIN_SALARY / factor;
+        const max = MAX_SALARY / factor;
+        const enteredAmount = grossAnnual / factor;
+        salaryRange.value = String(enteredAmount);
+        salaryRangeProgress.style.width = `${(enteredAmount - min) / (max - min) * 100}%`;
 
-        const charges = gross * CHARGES_RATE;
-        const tax = gross * TAX_RATE;
-        const net = gross - charges - tax;
+        const charges = grossAnnual * CHARGES_RATE;
+        const tax = grossAnnual * TAX_RATE;
+        const net = grossAnnual - charges - tax - healthCostAnnual;
         const values = period === "monthly"
-          ? { gross: gross / 12, charges: charges / 12, tax: tax / 12, net: net / 12 }
-          : { gross, charges, tax, net };
+          ? {
+            gross: grossAnnual / 12,
+            charges: charges / 12,
+            tax: tax / 12,
+            health: healthCostAnnual / 12,
+            net: net / 12
+          }
+          : { gross: grossAnnual, charges, tax, health: healthCostAnnual, net };
         const netMonthly = net / 12;
         const alternatePeriod = period === "monthly"
           ? { label: "Net annuel", amount: net }
           : { label: "Net mensuel", amount: netMonthly };
+        const chartAmounts = {
+          net: Math.max(0, net),
+          charges,
+          tax,
+          health: healthCostAnnual
+        };
+        const chartTotal = Object.values(chartAmounts).reduce((sum, amount) => sum + amount, 0);
 
         document.querySelector("#net-chf").textContent = formatMoney(values.net, "CHF");
         document.querySelector("#net-eur").textContent = formatMoney(values.net * CHF_TO_EUR, "EUR");
@@ -927,48 +1077,65 @@
         document.querySelector("#breakdown-net").textContent = formatMoney(values.net, "CHF");
         document.querySelector("#breakdown-charges").textContent = formatMoney(values.charges, "CHF");
         document.querySelector("#breakdown-tax").textContent = formatMoney(values.tax, "CHF");
+        document.querySelector("#breakdown-health").textContent = formatMoney(values.health, "CHF");
         document.querySelector("#alternate-period-label").textContent = alternatePeriod.label;
         document.querySelector("#alternate-chf").textContent = formatMoney(alternatePeriod.amount, "CHF");
         document.querySelector("#alternate-eur").textContent = formatMoney(alternatePeriod.amount * CHF_TO_EUR, "EUR");
 
-        document.querySelector("#chart-net").style.width = `${(net / gross * 100) || 0}%`;
-        document.querySelector("#chart-charges").style.width = `${(charges / gross * 100) || 0}%`;
-        document.querySelector("#chart-tax").style.width = `${(tax / gross * 100) || 0}%`;
+        for (const [key, amount] of Object.entries(chartAmounts)) {
+          document.querySelector(`#chart-${key}`).style.width =
+            `${chartTotal > 0 ? amount / chartTotal * 100 : 0}%`;
+        }
         document.querySelector("#salary-chart").setAttribute(
           "aria-label",
-          `Répartition du salaire ${period === "monthly" ? "mensuel" : "annuel"} : net ${formatMoney(values.net, "CHF")}, charges ${formatMoney(values.charges, "CHF")}, impôts ${formatMoney(values.tax, "CHF")}.`
+          `Répartition du salaire ${period === "monthly" ? "mensuel" : "annuel"} : net ${formatMoney(values.net, "CHF")}, charges ${formatMoney(values.charges, "CHF")}, impôts ${formatMoney(values.tax, "CHF")}, assurance santé ${formatMoney(values.health, "CHF")}.`
         );
+        currentCalculation = {
+          gross: grossAnnual,
+          charges,
+          tax,
+          health: healthCostAnnual,
+          net,
+          healthSystem: healthSystem.value,
+          rfr: healthSystem.value === "cmu" ? Number(rfrInput.value) : null,
+          premium: healthSystem.value === "lamal" ? Number(lamalPremiumInput.value) : null
+        };
       }
 
       for (const button of periodButtons) {
         button.addEventListener("click", () => {
+          if (button.dataset.period !== "monthly" && button.dataset.period !== "annual") return;
           period = button.dataset.period;
           for (const option of periodButtons) {
             option.setAttribute("aria-pressed", String(option === button));
           }
           document.querySelector("#period-heading").textContent = period === "monthly" ? "Net mensuel" : "Net annuel";
+          updateSalaryControls();
           updateResults();
         });
       }
 
       function buildSummary() {
-        const gross = Number(grossInput.value);
-        const charges = gross * CHARGES_RATE;
-        const tax = gross * TAX_RATE;
-        const net = gross - charges - tax;
+        const calculation = currentCalculation;
+        if (!calculation) return "";
         // Espaces insécables fines (fr-FR) → espaces normales pour un collage propre partout.
         const money = (amount, currency) => formatMoney(amount, currency).replace(/[  ]/g, " ");
+        const healthName = calculation.healthSystem === "cmu" ? "CMU" : "LAMal";
         return [
           "Simulation salaire frontalier — Genève / France",
           "",
-          `Salaire annuel brut : ${money(gross, "CHF")}`,
-          `Net mensuel : ${money(net / 12, "CHF")} (${money(net / 12 * CHF_TO_EUR, "EUR")})`,
-          `Net annuel : ${money(net, "CHF")} (${money(net * CHF_TO_EUR, "EUR")})`,
+          `Salaire annuel brut : ${money(calculation.gross, "CHF")}`,
+          `Net mensuel : ${money(calculation.net / 12, "CHF")} (${money(calculation.net / 12 * CHF_TO_EUR, "EUR")})`,
+          `Net annuel : ${money(calculation.net, "CHF")} (${money(calculation.net * CHF_TO_EUR, "EUR")})`,
           "",
           "Répartition annuelle :",
-          `- Net : ${money(net, "CHF")}`,
-          `- Charges sociales (15 %) : ${money(charges, "CHF")}`,
-          `- Impôts (10 %) : ${money(tax, "CHF")}`,
+          `- Net : ${money(calculation.net, "CHF")}`,
+          `- Cotisations sociales estimées (15 %, hypothèse) : ${money(calculation.charges, "CHF")}`,
+          `- Impôts estimés (10 %, hypothèse) : ${money(calculation.tax, "CHF")}`,
+          `- Assurance santé ${healthName} : ${money(calculation.health, "CHF")}`,
+          ...(calculation.healthSystem === "cmu"
+            ? [`- RFR annuel déclaré : ${money(calculation.rfr, "EUR")}`]
+            : [`- Prime LAMal mensuelle saisie : ${money(calculation.premium, "CHF")}`]),
           "",
           "Taux de conversion : 1 CHF = 1,05 EUR",
           "Estimation indicative uniquement."
@@ -991,6 +1158,7 @@
       let copyResetTimer;
       copyButton.addEventListener("click", async () => {
         const text = buildSummary();
+        if (!text) return;
         clearTimeout(copyResetTimer);
         copyStatus.classList.remove("is-error");
         try {
@@ -1014,11 +1182,23 @@
         }, 2500);
       });
 
-      grossInput.addEventListener("input", updateResults);
-      salaryRange.addEventListener("input", () => {
-        grossInput.value = salaryRange.value;
+      grossInput.addEventListener("input", () => {
+        const enteredAmount = Number(grossInput.value);
+        grossAnnual = grossInput.value.trim() === "" || !Number.isFinite(enteredAmount)
+          ? NaN
+          : enteredAmount * currentSalaryFactor();
         updateResults();
       });
+      salaryRange.addEventListener("input", () => {
+        grossAnnual = Number(salaryRange.value) * currentSalaryFactor();
+        grossInput.value = String(Number((grossAnnual / currentSalaryFactor()).toFixed(2)));
+        updateResults();
+      });
+      healthSystem.addEventListener("change", updateHealthInputs);
+      rfrInput.addEventListener("input", updateResults);
+      lamalPremiumInput.addEventListener("input", updateResults);
+      updateHealthInputs();
+      updateSalaryControls();
       updateResults();
     })();
   </script>
