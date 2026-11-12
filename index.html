@@ -621,6 +621,43 @@
       font-size: 11px;
     }
 
+    .copy-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .copy-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 9px 14px;
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      background: var(--input-surface);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: border-color .2s, background-color .2s;
+    }
+
+    .copy-button:hover:not(:disabled) { border-color: var(--green-bright); }
+    .copy-button:focus-visible { outline: 3px solid rgb(57 167 124 / 35%); outline-offset: 2px; }
+    .copy-button:disabled { cursor: not-allowed; opacity: .5; }
+    .copy-button svg { width: 15px; height: 15px; }
+    .copy-icon-check, .copy-button.is-copied .copy-icon-copy { display: none; }
+    .copy-button.is-copied .copy-icon-check { display: block; color: var(--green-bright); }
+
+    .copy-status {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .copy-status.is-error { color: #aa4639; }
+
     .disclaimer {
       display: flex;
       gap: 10px;
@@ -781,6 +818,15 @@
             <p class="tile-secondary" id="alternate-eur">— EUR</p>
           </div>
         </div>
+
+        <div class="copy-row">
+          <button class="copy-button" id="copy-result" type="button">
+            <svg class="copy-icon-copy" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="6.5" y="6.5" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M13.5 6.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v7A1.5 1.5 0 0 0 5 13.5h1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+            <svg class="copy-icon-check" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="copy-button-label">Copier le résultat</span>
+          </button>
+          <span class="copy-status" id="copy-status" role="status"></span>
+        </div>
       </div>
     </section>
 
@@ -803,6 +849,8 @@
       const errorMessage = document.querySelector("#salary-error");
       const periodButtons = document.querySelectorAll(".period-option");
       const themeToggle = document.querySelector("#theme-toggle");
+      const copyButton = document.querySelector("#copy-result");
+      const copyStatus = document.querySelector("#copy-status");
       const numberFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
       let period = "monthly";
 
@@ -851,12 +899,14 @@
             ? "Saisissez un montant pour afficher l’estimation."
             : "Saisissez un montant entier entre 40 000 et 250 000 CHF.";
           grossInput.setAttribute("aria-invalid", "true");
+          copyButton.disabled = true;
           clearResults();
           return;
         }
 
         errorMessage.textContent = "";
         grossInput.removeAttribute("aria-invalid");
+        copyButton.disabled = false;
         salaryRange.value = String(gross);
         salaryRangeProgress.style.width = `${(gross - MIN_SALARY) / (MAX_SALARY - MIN_SALARY) * 100}%`;
 
@@ -900,6 +950,69 @@
           updateResults();
         });
       }
+
+      function buildSummary() {
+        const gross = Number(grossInput.value);
+        const charges = gross * CHARGES_RATE;
+        const tax = gross * TAX_RATE;
+        const net = gross - charges - tax;
+        // Espaces insécables fines (fr-FR) → espaces normales pour un collage propre partout.
+        const money = (amount, currency) => formatMoney(amount, currency).replace(/[  ]/g, " ");
+        return [
+          "Simulation salaire frontalier — Genève / France",
+          "",
+          `Salaire annuel brut : ${money(gross, "CHF")}`,
+          `Net mensuel : ${money(net / 12, "CHF")} (${money(net / 12 * CHF_TO_EUR, "EUR")})`,
+          `Net annuel : ${money(net, "CHF")} (${money(net * CHF_TO_EUR, "EUR")})`,
+          "",
+          "Répartition annuelle :",
+          `- Net : ${money(net, "CHF")}`,
+          `- Charges sociales (15 %) : ${money(charges, "CHF")}`,
+          `- Impôts (10 %) : ${money(tax, "CHF")}`,
+          "",
+          "Taux de conversion : 1 CHF = 1,05 EUR",
+          "Estimation indicative uniquement."
+        ].join("\n");
+      }
+
+      function copyWithFallback(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        textarea.remove();
+        if (!ok) throw new Error("copy failed");
+      }
+
+      let copyResetTimer;
+      copyButton.addEventListener("click", async () => {
+        const text = buildSummary();
+        clearTimeout(copyResetTimer);
+        copyStatus.classList.remove("is-error");
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            copyWithFallback(text);
+          }
+          copyButton.classList.add("is-copied");
+          copyButton.querySelector(".copy-button-label").textContent = "Copié";
+          copyStatus.textContent = "Résultat copié dans le presse-papiers.";
+        } catch {
+          copyStatus.classList.add("is-error");
+          copyStatus.textContent = "Copie impossible, réessayez.";
+        }
+        copyResetTimer = setTimeout(() => {
+          copyButton.classList.remove("is-copied");
+          copyButton.querySelector(".copy-button-label").textContent = "Copier le résultat";
+          copyStatus.textContent = "";
+          copyStatus.classList.remove("is-error");
+        }, 2500);
+      });
 
       grossInput.addEventListener("input", updateResults);
       salaryRange.addEventListener("input", () => {
